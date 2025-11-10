@@ -19,15 +19,13 @@ public class LevelFlowManager : MonoBehaviour
     public AudioClip levelWinClip;
     public AudioClip gameWinClip;
 
-    [Header("Optional Parent for spawned rooms")]
-    public Transform roomParent; // create an empty GameObject in the scene and assign here
 
     private int currentIndex = -1;
     private GameObject currentRoom;
     private GoalWatcher currentWatcher;
 
-    private bool isLoading = false;   // <¡ª prevents double loads (duplication)
-    private bool gameEnded = false;   // <¡ª avoids extra loads after end
+    private bool isLoading = false;
+    private bool gameEnded = false;
 
     void Start()
     {
@@ -83,12 +81,10 @@ public class LevelFlowManager : MonoBehaviour
     {
         isLoading = true;
 
-        // clamp / finish
         if (index >= roomPrefabs.Count)
         {
             gameEnded = true;
 
-            // destroy old room cleanly
             if (currentRoom != null)
             {
                 Destroy(currentRoom);
@@ -104,31 +100,21 @@ public class LevelFlowManager : MonoBehaviour
 
         if (index < 0) index = 0;
 
-        // 1) destroy old
         if (currentRoom != null)
         {
             Destroy(currentRoom);
             currentRoom = null;
             currentWatcher = null;
-            yield return null; // let Unity actually remove it this frame
-        }
-
-        // safety: also clear any leftover children under roomParent
-        if (roomParent != null)
-        {
-            for (int i = roomParent.childCount - 1; i >= 0; i--)
-                Destroy(roomParent.GetChild(i).gameObject);
             yield return null;
         }
 
-        // 2) instantiate new
+
+
         currentIndex = index;
         var prefab = roomPrefabs[currentIndex];
-        currentRoom = (roomParent == null)
-            ? Instantiate(prefab)
-            : Instantiate(prefab, roomParent);
+        currentRoom = Instantiate(prefab);
 
-        // 3) wire goal watcher
+
         var gm = currentRoom.GetComponentInChildren<GridManager>();
         if (gm == null)
         {
@@ -141,7 +127,7 @@ public class LevelFlowManager : MonoBehaviour
             currentWatcher.OnLevelComplete = OnLevelComplete;
         }
 
-        // 4) UI cleanup
+
         if (endScreen) endScreen.SetActive(false);
 
         isLoading = false;

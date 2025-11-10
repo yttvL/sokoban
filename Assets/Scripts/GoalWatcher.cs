@@ -19,43 +19,33 @@ public class GoalWatcher : MonoBehaviour
         grid = GetComponent<GridManager>();
     }
 
-    void OnEnable()
-    {
-        // optional: initial pass if the level starts solved
-        StartSettleCheck();
-    }
 
-    // ------------------------------
-    // These are invoked via BroadcastMessage from the provided scripts:
-    // - Block.CheckMove() triggers "BlockMoved"
-    // - GridManager.UpdateGrid() triggers "GridChanged"
-    // We *do not* edit those scripts ¡ª we just listen.
-    // ------------------------------
+
+
     void GridChanged() { StartSettleCheck(); }
     void BlockMoved(Vector2Int _) { StartSettleCheck(); }
 
     void StartSettleCheck()
     {
-        if (completionFired) return; // avoid double win
+        if (completionFired) return;
         if (settleRoutine != null) StopCoroutine(settleRoutine);
         settleRoutine = StartCoroutine(CoWaitForSettleThenCheck());
     }
 
     IEnumerator CoWaitForSettleThenCheck()
     {
-        // 1) Wait until all Blocks are idle
+
         yield return StartCoroutine(CoWaitUntilAllBlocksIdle());
 
-        // 2) Small extra settle to catch Slidey re-triggers
         for (int i = 0; i < Mathf.Max(0, settleFrames); i++)
             yield return null;
         if (settleSeconds > 0f)
             yield return new WaitForSeconds(settleSeconds);
 
-        // 3) Confirm still idle (defensive)
+
         if (!AllBlocksIdle()) yield break;
 
-        // 4) Now do the actual goal test once
+
         if (AllGoalsSatisfied())
         {
             completionFired = true;
@@ -65,21 +55,16 @@ public class GoalWatcher : MonoBehaviour
 
     IEnumerator CoWaitUntilAllBlocksIdle()
     {
-        // Keep yielding frames while any Block is not idle
         while (!AllBlocksIdle())
             yield return null;
     }
 
     bool AllBlocksIdle()
     {
-        // Use the new API to avoid deprecation warnings
         var blocks = UnityEngine.Object.FindObjectsByType<Block>(FindObjectsSortMode.None);
         foreach (var b in blocks)
         {
             if (b == null) continue;
-
-            // We rely on the provided Block's public state.
-            // If your Block exposes enums like MoveStates.idle, attemptingMove, moving:
             if (b.State != Block.MoveStates.idle)
                 return false;
         }
@@ -98,11 +83,9 @@ public class GoalWatcher : MonoBehaviour
 
             if (!cell.CheckContainObj()) return false;
 
-            // Only count blocks (per assignment)
             var go = cell.ContainObj;
             if (go == null || !go.CompareTag("block")) return false;
 
-            // Optional extra safety: ensure the occupant is also idle
             var blk = go.GetComponent<Block>();
             if (blk != null && blk.State != Block.MoveStates.idle)
                 return false;
